@@ -78,7 +78,7 @@ footer a:hover { color: #ff1a1a; }
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-black fixed-top border-bottom border-danger">
   <div class="container">
-    <a class="navbar-brand fw-bold text-danger" href="{{ route('inicio') }}">GameZone</a>
+    <a class="navbar-brand fw-bold text-danger" href="/">GameZone</a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarGameZone">
       <span class="navbar-toggler-icon"></span>
@@ -87,11 +87,11 @@ footer a:hover { color: #ff1a1a; }
     <div class="collapse navbar-collapse" id="navbarGameZone">
       <ul class="navbar-nav ms-auto align-items-lg-center">
         <li class="nav-item">
-          <a class="nav-link" href="{{ route('catalogo') }}">Catálogo</a>
+          <a class="nav-link" href="/catalogo">Catálogo</a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="{{ route('carrito.index') }}">
+          <a class="nav-link" href="/carrito">
             Carrito
             <span id="cart-count" class="badge bg-danger">
               {{ collect(session('carrito', []))->filter(fn($item) => is_array($item))->sum('cantidad') }}
@@ -106,7 +106,7 @@ footer a:hover { color: #ff1a1a; }
             </span>
           </li>
           <li class="nav-item">
-          <a class="nav-link" href="{{ route('mis_compras') }}">Mis compras</a>
+          <a class="nav-link" href="/mis-compras">Mis compras</a>
         </li>
           <li class="nav-item">
             <form action="{{ route('logout') }}" method="POST" class="d-inline">
@@ -116,18 +116,18 @@ footer a:hover { color: #ff1a1a; }
           </li>
           @if (session('user.rol') === 'admin')
           <li class="nav-item">
-            <a class="nav-link text-warning" href="{{ route('admin.juegos.index') }}">
+            <a class="nav-link text-warning" href="/admin/juegos">
               Admin
             </a>
           </li>
         @endif
         @else
           <li class="nav-item">
-            <a class="nav-link" href="{{ route('login') }}">Login</a>
+            <a class="nav-link" href="/login">Login</a>
           </li>
 
           <li class="nav-item">
-            <a class="nav-link" href="{{ route('register') }}">Registro</a>
+            <a class="nav-link" href="/register">Registro</a>
           </li>
         @endif
       </ul>
@@ -250,7 +250,7 @@ function addToCart(id_juego) {
     return;
   }
 
-  fetch("{{ route('carrito.agregar') }}", {
+  fetch("/carrito/agregar", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
