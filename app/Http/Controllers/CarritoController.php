@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 class CarritoController extends Controller
 {
-    public function agregar(Request $request)
+   public function agregar(Request $request)
 {
     $request->validate([
         'id_juego' => 'required|integer|exists:juegos,id_juego',
@@ -15,6 +15,13 @@ class CarritoController extends Controller
     ]);
 
     $juego = Juego::findOrFail($request->id_juego);
+    $stockDisponible = (int) $juego->stock;
+    if ($stockDisponible <= 0) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Este juego no tiene stock disponible.',
+        ], 422);
+    }
 
     $carrito = session()->get('carrito', []);
 
@@ -25,8 +32,21 @@ class CarritoController extends Controller
     $id = (string) $juego->id_juego;
     $cantidad = (int) $request->cantidad;
 
+    $cantidadActual = isset($carrito[$id]) && is_array($carrito[$id])
+        ? (int) $carrito[$id]['cantidad']
+        : 0;
+
+    $cantidadFinal = $cantidadActual + $cantidad;
+
+    if ($cantidadFinal > $stockDisponible) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No puedes agregar más de ' . $stockDisponible . ' unidades disponibles.',
+        ], 422);
+    }
+
     if (isset($carrito[$id]) && is_array($carrito[$id])) {
-        $carrito[$id]['cantidad'] += $cantidad;
+        $carrito[$id]['cantidad'] = $cantidadFinal;
     } else {
         $carrito[$id] = [
             'id_juego' => $juego->id_juego,
@@ -61,35 +81,77 @@ class CarritoController extends Controller
             'carrito' => $carrito
         ]);
     }
-    public function actualizar ( Request $request)
+    public function vaciar()
     {
-        $request->validate([
-            'id_juego' => 'required|integer',
-            'cantidad' => 'required|integer|min:1',
-        ]);
-        $carrito = session()->get('carrito', []);
-
-        if (isset($carrito[$request->id_juego])){
-            $carrito[$request->id_juego]['cantidad'] = $request->cantidad;
-            session()->put('carrito','$carrito');
-        }
-        return redirect()->route('carrito.index')
-        -> with('success','Carrito actualizado correctamente.');
-    }
-    public function eliminar($id_juego)
-    {
-        $carrito = session()->get('carrito',[]);
-        if (isset($carrito[$id_juego])){
-            unset($carrito[$id_juego]);
-            session()->put('carrito',$carrito);
-        }
-        return redirect()->route('carrito.index')
-        ->with('success','Juego eliminado correctamente del carrito.');
-    }
-    public function vaciar(){
         session()->forget('carrito');
 
         return redirect()->route('carrito.index')
-        ->with('success','Carrito vacio correctamente.');
+            ->with('success', 'Carrito vaciado correctamente.');
     }
+    public function eliminar($id_juego)
+{
+    $carrito = session()->get('carrito', []);
+
+    $id = (string) $id_juego;
+
+    if (isset($carrito[$id])) {
+        unset($carrito[$id]);
+        session()->put('carrito', $carrito);
+    }
+
+    return redirect()->route('carrito.index')
+        ->with('success', 'Juego eliminado del carrito.');
+}
+    public function actualizar(Request $request)
+{
+    $request->validate([
+        'id_juego' => 'required|integer|exists:juegos,id_juego',
+        'cantidad' => 'required|integer|min:1',
+    ]);
+
+    $juego = Juego::findOrFail($request->id_juego);
+    $cantidad = (int) $request->cantidad;
+    $stock = (int) $juego->stock;
+
+    if ($cantidad > $stock) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No hay stock suficiente. Solo quedan ' . $stock . ' unidades de ' . $juego->titulo . '.',
+        ], 422);
+    }
+
+    $carrito = session()->get('carrito', []);
+    $id = (string) $request->id_juego;
+
+    if (isset($carrito[$id]) && is_array($carrito[$id])) {
+        $carrito[$id]['cantidad'] = $cantidad;
+        session()->put('carrito', $carrito);
+    }
+
+    $subtotal = 0;
+    $total = 0;
+    $totalItems = 0;
+
+    foreach ($carrito as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+
+        $itemSubtotal = $item['precio'] * $item['cantidad'];
+        $total += $itemSubtotal;
+        $totalItems += $item['cantidad'];
+
+        if ((int) $item['id_juego'] === (int) $request->id_juego) {
+            $subtotal = $itemSubtotal;
+        }
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Carrito actualizado.',
+        'subtotal' => number_format($subtotal, 2),
+        'total' => number_format($total, 2),
+        'total_items' => $totalItems,
+    ]);
+}
 }

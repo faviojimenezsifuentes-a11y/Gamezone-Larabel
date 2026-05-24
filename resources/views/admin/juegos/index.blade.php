@@ -60,7 +60,15 @@ body {
               <td>{{ $juego->titulo }}</td>
               <td>{{ $juego->categoria }}</td>
               <td>S/ {{ number_format($juego->precio, 2) }}</td>
-              <td>{{ $juego->stock }}</td>
+              <td>
+                  @if ($juego->stock == 0)
+                    <span class="badge bg-danger">Sin stock</span>
+                  @elseif ($juego->stock <= 3)
+                    <span class="badge bg-warning text-dark">Stock bajo: {{ $juego->stock }}</span>
+                  @else
+                    <span class="badge bg-success">{{ $juego->stock }}</span>
+                  @endif
+                </td>
               <td>
                 <a href="{{ route('admin.juegos.edit', $juego->id_juego) }}" class="btn btn-warning btn-sm">
                   Editar

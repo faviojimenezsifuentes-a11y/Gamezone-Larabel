@@ -11,6 +11,48 @@
 <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
 
 <style>
+.form-control,
+.form-select {
+    background-color: #15151f !important;
+    color: #ffffff !important;
+    border: 1px solid #555 !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: #15151f !important;
+    color: #ffffff !important;
+    border-color: #ff1a1a !important;
+    box-shadow: 0 0 8px rgba(255,26,26,0.6) !important;
+}
+
+.form-control::placeholder {
+    color: #bbbbbb !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: 0 0 0px 1000px #15151f inset !important;
+}
+input[type="number"] {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+    border: 1px solid #555 !important;
+    caret-color: #ffffff;
+}
+
+input[type="number"]:focus {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    opacity: 1;
+    filter: invert(1);
+}
 :root {
     --gz-red: #ff1a1a;
     --gz-red-dark: #e60000;
@@ -143,7 +185,69 @@ footer a:hover { color: #ff1a1a; }
     </p>
   </div>
 </header>
+<section class="py-4 bg-black border-top border-danger border-bottom border-danger">
+  <div class="container">
+    <form method="GET" action="/catalogo" class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label">Buscar juego</label>
+        <input type="text"
+               name="buscar"
+               class="form-control"
+               placeholder="Ej: Spider-Man"
+               value="{{ request('buscar') }}">
+      </div>
 
+      <div class="col-md-3">
+        <label class="form-label">Categoría</label>
+        <select name="categoria" class="form-select">
+          <option value="">Todas</option>
+          @foreach ($categorias as $categoria)
+            <option value="{{ $categoria }}" {{ request('categoria') == $categoria ? 'selected' : '' }}>
+              {{ $categoria }}
+            </option>
+          @endforeach
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">Ordenar por</label>
+        <select name="orden" class="form-select">
+          <option value="">Título A-Z</option>
+          <option value="precio_asc" {{ request('orden') == 'precio_asc' ? 'selected' : '' }}>
+            Menor precio
+          </option>
+          <option value="precio_desc" {{ request('orden') == 'precio_desc' ? 'selected' : '' }}>
+            Mayor precio
+          </option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <div class="form-check mb-2">
+          <input class="form-check-input"
+                 type="checkbox"
+                 name="disponible"
+                 value="1"
+                 id="disponible"
+                 {{ request('disponible') ? 'checked' : '' }}>
+          <label class="form-check-label" for="disponible">
+            Con stock
+          </label>
+        </div>
+      </div>
+
+      <div class="col-md-12 d-flex gap-2">
+        <button class="btn btn-danger" type="submit">
+          Filtrar
+        </button>
+
+        <a href="/catalogo" class="btn btn-outline-light">
+          Limpiar
+        </a>
+      </div>
+    </form>
+  </div>
+</section>
 <section class="py-5 bg-dark">
   <div class="container px-4 px-lg-5 mt-4">
     <div class="row gx-4 gx-lg-5 row-cols-1 row-cols-md-3 row-cols-xl-4 justify-content-center">
@@ -162,25 +266,56 @@ footer a:hover { color: #ff1a1a; }
                  style="height:220px;object-fit:cover;">
 
             <div class="card-body p-4">
-              <h5 class="mb-1">{{ $juego->titulo }}</h5>
-              <p class="fw-semibold mb-1">S/ {{ number_format($juego->precio, 2) }}</p>
+              <span class="badge bg-danger mb-2">
+                {{ $juego->categoria ?? 'Videojuego' }}
+              </span>
+
+              <h5 class="mb-2">{{ $juego->titulo }}</h5>
+
+              <p class="fw-bold fs-5 mb-1">
+                S/ {{ number_format($juego->precio, 2) }}
+              </p>
+
               <small class="d-block text-white-50">
-              Aprox. $ {{ number_format($juego->precio_dolares, 2) }} USD
-            </small>
-              <small>Licencia digital · Entrega inmediata</small>
+                Aprox. $ {{ number_format($juego->precio_dolares, 2) }} USD
+              </small>
+
+              <small class="d-block mt-1">
+                Licencia digital · Entrega inmediata
+              </small>
+            </div>
+
+            <div class="px-4 pb-2">
+              @if ($juego->stock > 5)
+                <span class="badge bg-success">
+                  Stock disponible: {{ $juego->stock }}
+                </span>
+              @elseif ($juego->stock > 0)
+                <span class="badge bg-warning text-dark">
+                  Últimas unidades: {{ $juego->stock }}
+                </span>
+              @else
+                <span class="badge bg-secondary">
+                  Sin stock
+                </span>
+              @endif
             </div>
 
             <div class="card-footer bg-transparent border-0 pb-3">
               <div class="d-flex justify-content-center align-items-center">
                 <input type="number"
-                       class="form-control me-2"
-                       id="qty-{{ $juego->id_juego }}"
-                       value="1"
-                       min="1"
-                       style="width:80px;">
+                   class="form-control me-2"
+                   id="qty-{{ $juego->id_juego }}"
+                   value="1"
+                   min="1"
+                   max="{{ max($juego->stock, 1) }}"
+                   data-stock="{{ $juego->stock }}"
+                   {{ $juego->stock <= 0 ? 'disabled' : '' }}
+                   style="width:80px;">
 
                 <button class="btn btn-danger btn-sm px-3"
-                        onclick="addToCart({{ $juego->id_juego }})">
+                        onclick="addToCart({{ $juego->id_juego }})"
+                        {{ $juego->stock <= 0 ? 'disabled' : '' }}>
                   <i class="bi bi-cart-plus me-1"></i> Añadir
                 </button>
               </div>
@@ -242,11 +377,21 @@ function hideToast() {
 
 function addToCart(id_juego) {
   const input = document.getElementById('qty-' + id_juego);
-  const qty = input ? input.value : 1;
   const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-  if (qty <= 0) {
+  let qty = input ? parseInt(input.value, 10) : 1;
+  const stock = input ? parseInt(input.dataset.stock, 10) : 1;
+
+  if (!qty || qty < 1) {
+    qty = 1;
+    if (input) input.value = 1;
     showToast('Cantidad inválida');
+    return;
+  }
+
+  if (qty > stock) {
+    if (input) input.value = stock;
+    showToast('Solo hay ' + stock + ' unidades disponibles');
     return;
   }
 
@@ -262,7 +407,15 @@ function addToCart(id_juego) {
       cantidad: qty
     })
   })
-  .then(response => response.json())
+  .then(async response => {
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw data;
+    }
+
+    return data;
+  })
   .then(data => {
     if (data.success) {
       showToast(data.message, 'success');
@@ -271,14 +424,35 @@ function addToCart(id_juego) {
       if (cartCount) {
         cartCount.innerText = data.total_items;
       }
+
+      if (input) {
+        input.value = 1;
+      }
     } else {
       showToast(data.message || 'Error al agregar');
     }
   })
-  .catch(() => {
-    showToast('Error en la conexión');
+  .catch(error => {
+    showToast(error.message || 'No se pudo agregar el juego');
   });
 }
+
+document.querySelectorAll('input[id^="qty-"]').forEach(input => {
+  input.addEventListener('input', function () {
+    const stock = parseInt(this.dataset.stock, 10);
+    let value = parseInt(this.value, 10);
+
+    if (!value || value < 1) {
+      this.value = 1;
+      return;
+    }
+
+    if (value > stock) {
+      this.value = stock;
+      showToast('Solo hay ' + stock + ' unidades disponibles');
+    }
+  });
+});
 </script>
 
 </body>

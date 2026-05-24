@@ -22,6 +22,20 @@ class PagoController extends Controller
             return redirect()->route('carrito.index')
                 ->with('success', 'Tu carrito está vacío.');
         }
+        foreach ($carrito as $item) {
+    if (!is_array($item)) {
+        continue;
+    }
+
+    $juego = DB::table('juegos')
+        ->where('id_juego', $item['id_juego'])
+        ->first();
+
+    if (!$juego || $juego->stock < $item['cantidad']) {
+        return redirect()->route('carrito.index')
+            ->with('error', 'Stock insuficiente para el juego: ' . ($item['titulo'] ?? 'desconocido'));
+    }
+}
 
         Stripe::setApiKey(config('services.stripe.secret'));
 
@@ -73,6 +87,14 @@ class PagoController extends Controller
         Stripe::setApiKey(config('services.stripe.secret'));
 
         $stripeSession = Session::retrieve($request->session_id);
+        $pedidoExistente = DB::table('pedidos')
+            ->where('referencia_pago', $stripeSession->id)
+            ->first();
+
+        if ($pedidoExistente) {
+            session()->forget('carrito');
+            return redirect()->route('gracias');
+        }
 
         if ($stripeSession->payment_status !== 'paid') {
             return redirect()->route('carrito.index')
@@ -106,13 +128,23 @@ class PagoController extends Controller
                 if (!is_array($item)) {
                     continue;
                 }
+                $juegoActual = DB::table('juegos')
+                    ->where('id_juego', $item['id_juego'])
+                    ->lockForUpdate()
+                    ->first();
 
+                if (!$juegoActual || $juegoActual->stock < $item['cantidad']) {
+                    throw new \Exception('Stock insuficiente para ' . $item['titulo']);
+                }
                 DB::table('detalle_pedidos')->insert([
                     'id_pedido' => $idPedido,
                     'id_juego' => $item['id_juego'],
                     'cantidad' => $item['cantidad'],
                     'subtotal' => $item['precio'] * $item['cantidad'],
                 ]);
+                 DB::table('juegos')
+                    ->where('id_juego', $item['id_juego'])
+                    ->decrement('stock', $item['cantidad']);
             }
         });
 

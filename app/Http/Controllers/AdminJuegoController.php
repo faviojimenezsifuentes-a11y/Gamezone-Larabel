@@ -22,6 +22,49 @@ class AdminJuegoController extends Controller
         return null;
     }
 
+    private function limpiarDatos(Request $request): void
+    {
+        $request->merge([
+            'titulo' => trim($request->titulo ?? ''),
+            'categoria' => trim($request->categoria ?? ''),
+            'imagen' => trim($request->imagen ?? ''),
+        ]);
+    }
+
+    private function reglasValidacion(?Juego $juego = null): array
+    {
+        $id = $juego ? $juego->id_juego : null;
+
+        return [
+            'titulo' => 'required|string|max:100|unique:juegos,titulo,' . $id . ',id_juego',
+            'descripcion' => 'nullable|string',
+            'precio' => 'required|numeric|min:0',
+            'categoria' => 'nullable|string|max:50',
+            'imagen' => [
+                'nullable',
+                'string',
+                'max:500',
+                'regex:/^(assets\/img\/juegos\/.+\.(jpg|jpeg|png|webp)|https?:\/\/.+)$/i',
+            ],
+            'stock' => 'required|integer|min:0',
+        ];
+    }
+
+    private function mensajesValidacion(): array
+    {
+        return [
+            'titulo.required' => 'Ingrese el título del juego.',
+            'titulo.unique' => 'Ya existe un juego con ese título.',
+            'precio.required' => 'Ingrese el precio del juego.',
+            'precio.numeric' => 'El precio debe ser un número.',
+            'precio.min' => 'El precio no puede ser negativo.',
+            'stock.required' => 'Ingrese el stock del juego.',
+            'stock.integer' => 'El stock debe ser un número entero.',
+            'stock.min' => 'El stock no puede ser negativo.',
+            'imagen.regex' => 'La imagen debe ser una ruta local válida o una URL http/https.',
+        ];
+    }
+
     public function index()
     {
         if ($redirect = $this->verificarAdmin()) {
@@ -48,23 +91,14 @@ class AdminJuegoController extends Controller
             return $redirect;
         }
 
-        $request->validate([
-            'titulo' => 'required|string|max:100|unique:juegos,titulo',
-            'descripcion' => 'nullable|string',
-            'precio' => 'required|numeric|min:0',
-            'categoria' => 'nullable|string|max:50',
-            'imagen' => 'nullable|string|max:255',
-            'stock' => 'required|integer|min:0',
-        ]);
+        $this->limpiarDatos($request);
 
-        Juego::create($request->only([
-            'titulo',
-            'descripcion',
-            'precio',
-            'categoria',
-            'imagen',
-            'stock',
-        ]));
+        $validated = $request->validate(
+            $this->reglasValidacion(),
+            $this->mensajesValidacion()
+        );
+
+        Juego::create($validated);
 
         return redirect()->route('admin.juegos.index')
             ->with('success', 'Juego creado correctamente.');
@@ -89,23 +123,14 @@ class AdminJuegoController extends Controller
 
         $juego = Juego::findOrFail($id);
 
-        $request->validate([
-            'titulo' => 'required|string|max:100|unique:juegos,titulo,' . $juego->id_juego . ',id_juego',
-            'descripcion' => 'nullable|string',
-            'precio' => 'required|numeric|min:0',
-            'categoria' => 'nullable|string|max:50',
-            'imagen' => 'nullable|string|max:255',
-            'stock' => 'required|integer|min:0',
-        ]);
+        $this->limpiarDatos($request);
 
-        $juego->update($request->only([
-            'titulo',
-            'descripcion',
-            'precio',
-            'categoria',
-            'imagen',
-            'stock',
-        ]));
+        $validated = $request->validate(
+            $this->reglasValidacion($juego),
+            $this->mensajesValidacion()
+        );
+
+        $juego->update($validated);
 
         return redirect()->route('admin.juegos.index')
             ->with('success', 'Juego actualizado correctamente.');

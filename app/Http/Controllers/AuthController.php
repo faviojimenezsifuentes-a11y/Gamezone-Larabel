@@ -17,7 +17,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required',
+            'password' => 'required|string',
         ], [
             'email.required' => 'Ingrese su correo.',
             'email.email' => 'Formato de correo inválido.',
@@ -62,16 +62,33 @@ class AuthController extends Controller
     public function registrar(Request $request)
     {
         $request->validate([
-            'username' => 'required|string|max:50',
+            'username' => [
+                'required',
+                'string',
+                'max:50',
+                'regex:/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/u',
+            ],
             'email' => 'required|email|unique:usuarios,correo',
-            'password' => 'required|min:6',
+            'password' => [
+                'required',
+                'confirmed',
+                'string',
+                'min:8',
+                'regex:/[A-Z]/',
+                'regex:/[a-z]/',
+                'regex:/[0-9]/',
+                'regex:/[@$!%*#?&._-]/',
+            ],
         ], [
             'username.required' => 'Ingrese su usuario.',
+            'username.regex' => 'El nombre solo debe contener letras y espacios.',
             'email.required' => 'Ingrese su correo.',
             'email.email' => 'El correo ingresado no es válido.',
             'email.unique' => 'El correo ya está registrado.',
             'password.required' => 'Ingrese su contraseña.',
-            'password.min' => 'La contraseña debe tener mínimo 6 caracteres.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
+            'password.min' => 'La contraseña debe tener mínimo 8 caracteres.',
+            'password.regex' => 'La contraseña debe incluir mayúscula, minúscula, número y carácter especial.',
         ]);
 
         $usuario = Usuario::create([

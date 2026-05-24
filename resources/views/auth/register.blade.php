@@ -86,6 +86,20 @@ a { text-decoration: none; }
               <input type="password" class="form-control" name="password" required>
             </div>
           </div>
+          <div class="mb-3">
+          <label class="form-label">Confirmar contraseña</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+            <input type="password" class="form-control" name="password_confirmation" required>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Confirmar contraseña</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+            <input type="password" class="form-control" name="password_confirmation" required>
+          </div>
+        </div>
 
           <button type="submit" class="btn btn-danger w-100 mt-2">
             <i class="bi bi-check-circle me-1"></i> Registrarse
